@@ -142,6 +142,8 @@ func main() {
 		challenge_flag_entry.SetText(randStr(32))
 	})
 
+	save_check := widget.NewCheck("Save Entries", func(b bool) {})
+
 	success_message_label := widget.NewLabel("")
 
 	// main window form
@@ -153,6 +155,7 @@ func main() {
 			{Text: "Challenge Value: ", Widget: challenge_value_entry},
 			{Text: "Challenge Flag: ", Widget: challenge_flag_entry},
 			{Text: "", Widget: generate_flag_button},
+			{Text: "", Widget: save_check},
 			{Text: "", Widget: success_message_label},
 		},
 		OnSubmit: func() {
@@ -183,10 +186,12 @@ func main() {
 			success_message_label.SetText("Successfully Wrote Challenge")
 
 			// clear fields
-			challenge_name_entry.SetText("")
-			challenge_description_entry.SetText("")
-			challenge_value_entry.SetText("")
-			challenge_flag_entry.SetText("")
+			if !save_check.Checked {
+				challenge_name_entry.SetText("")
+				challenge_description_entry.SetText("")
+				challenge_value_entry.SetText("")
+				challenge_flag_entry.SetText("")
+			}
 		},
 		OnCancel: func() {
 			App.Quit()
