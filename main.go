@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"log"
 	"math/rand"
@@ -49,37 +50,73 @@ func main() {
 	Main_Window.Resize(fyne.NewSize(600, 600))
 
 	// starting window widgets
-	csv_file_entry := widget.NewEntry()
-	csv_open := dialog.NewFileSave(func(uc fyne.URIWriteCloser, err error) {
-		csv_file_entry.SetText(uc.URI().Path())
+	csv_new_file_entry := widget.NewEntry()
+	csv_open_new := dialog.NewFileSave(func(uc fyne.URIWriteCloser, err error) {
+		csv_new_file_entry.SetText(uc.URI().Path())
 	}, Start_Window)
-	csv_open_button := widget.NewButton("Open", func() {
-		csv_open.Show()
-		csv_open.Resize(fyne.NewSize(600, 600))
+	csv_open_new_button := widget.NewButton("New", func() {
+		csv_open_new.Show()
+		csv_open_new.Resize(fyne.NewSize(600, 600))
+	})
+
+	csv_open_file_entry := widget.NewEntry()
+	csv_open_old := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
+		csv_open_file_entry.SetText(uc.URI().Path())
+	}, Start_Window)
+	csv_open_old_button := widget.NewButton("Open", func() {
+		csv_open_old.Show()
+		csv_open_old.Resize(fyne.NewSize(600, 600))
 	})
 
 	// starting window form
 	start_window_form := &widget.Form{
 		Items: []*widget.FormItem{
-			{Text: "CSV File Path", Widget: csv_file_entry},
-			{Text: "", Widget: csv_open_button},
+			{Text: "CSV New File: ", Widget: csv_new_file_entry},
+			{Text: "", Widget: csv_open_new_button},
+			{Text: "CSV Open File: ", Widget: csv_open_file_entry},
+			{Text: "", Widget: csv_open_old_button},
 		},
 		OnSubmit: func() {
-			// change csv path
-			csv_path = csv_file_entry.Text
-
-			// truncate or create file & write csv headers
-			csv_file, err := os.Create(csv_path)
-			if err != nil {
-				log.Fatal("failed to truncate and/or create csv file\ncsv_path: " + csv_path + "\nError: " + err.Error())
+			// error handling
+			if csv_new_file_entry.Text != "" && csv_open_file_entry.Text != "" {
+				log.Fatal("only one entry can have data")
 			}
 
-			csv_writer := csv.NewWriter(csv_file)
-			defer csv_writer.Flush()
+			if csv_new_file_entry.Text != "" {
+				// change csv path
+				csv_path = csv_new_file_entry.Text
 
-			err = csv_writer.Write(headers)
-			if err != nil {
-				log.Fatal("failed to write headers to csv file\nError: " + err.Error())
+				// truncate or create file & write csv headers
+				csv_file, err := os.Create(csv_path)
+				if err != nil {
+					log.Fatal("failed to truncate and/or create csv file\ncsv_path: " + csv_path + "\nError: " + err.Error())
+				}
+
+				csv_writer := csv.NewWriter(csv_file)
+				defer csv_writer.Flush()
+
+				err = csv_writer.Write(headers)
+				if err != nil {
+					log.Fatal("failed to write headers to csv file\nError: " + err.Error())
+				}
+			} else if csv_open_file_entry.Text != "" {
+				csv_path = csv_open_file_entry.Text
+
+				// check if file contains the correct headers
+				read_file, err := os.Open(csv_path)
+				if err != nil {
+					log.Fatal(err)
+				}
+				file_scanner := bufio.NewScanner(read_file)
+
+				file_scanner.Split(bufio.ScanLines)
+
+				file_scanner.Scan()
+				if file_scanner.Text() != "name,description,category,value,type,state,max_attempts,flags" {
+					log.Fatal("invalid csv file")
+				}
+			} else {
+				log.Fatal("one option must be selected")
 			}
 
 			// cycle to new window
